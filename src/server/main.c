@@ -25,6 +25,7 @@ void on_internal_error(server *srv, const char *msg) {
 
 int my_on_protocol_error(server *srv, connection *conn, message *msg, int res) {
   UNUSED(srv);
+  UNUSED(msg);
 
   my_log(0);
   printf("Protocol error on connection #%d - error code %d\n", connection_get_socket(conn), res);
@@ -65,7 +66,7 @@ int my_on_conn_recv(server *srv, connection *conn, message *msg) {
   printf("Connection #%d received a message.", connection_get_socket(conn));
 
   if(message_get_type(msg) == MSG_TYPE_TEXT) {
-    char *buf = msg_to_cstr(msg, 256);
+    char *buf = msg_to_cstr(msg);
     printf("  %s\n", buf);
     free(buf);
   }
@@ -90,9 +91,9 @@ int my_on_broadcast(server *srv, connection *conn, const char *msg) {
 int main() {
   server_settings settings;
   server_settings_init(&settings);
-  settings.max_conns = 5;
-  settings.name_size = 32;
+  settings.max_name_size = 16;
   settings.max_msg_size = 1024;
+  settings.port = 12345;
 
   settings.cbs.on_server_start = my_on_server_start;
 
@@ -108,8 +109,6 @@ int main() {
 
   server* srv = server_create(&settings);
   int res;
-  res = server_listen(srv, 12345);
-  assert(res == 0);
   res = server_start(srv);
   assert(res == 0);
 

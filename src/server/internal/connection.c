@@ -3,6 +3,8 @@
 
 #include <pthread.h>
 #include <sys/socket.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include "server.h"
 
@@ -23,8 +25,6 @@ message *_connection_collect(connection *conn) {
     return NULL;
   }
 
-  SRV_CALLBACK(on_client_msg, conn, msg);
-
   return msg;
 }
 
@@ -37,6 +37,11 @@ connection *_connection_init(server *srv, int sock) {
   conn->recv_thread_res = -1;
   conn->triggered = 0;
   return conn;
+}
+
+void _connection_destroy(connection *conn) {
+  if(conn->name != NULL) free(conn->name);
+  free(conn);
 }
 
 void _connection_process(connection *conn) {
@@ -57,12 +62,16 @@ void _connection_process(connection *conn) {
 
   switch(msg_type) {
   case MSG_TYPE_TEXT: {
-    char *msg_txt = msg_to_cstr(msg, srv->settings.name_size);
-    if(conn->name == NULL) {
-      conn->name = msg_txt;
-      SRV_CALLBACK(on_conn_authenticated, conn);
+    if(message_get_content(msg)->text.len >= srv->settings.max_name_size) {
+      SRV_CALLBACK(on_conn_name_too_large, conn, msg);
     } else {
-      server_broadcast(srv, conn, msg_txt);
+      char *msg_txt = msg_to_cstr(msg);
+      if(conn->name == NULL) {
+        conn->name = msg_txt;
+        SRV_CALLBACK(on_conn_authenticated, conn);
+      } else {
+        server_broadcast(srv, conn, msg_txt);
+      }
     }
   } break;
   case MSG_TYPE_HEARTBEAT: {

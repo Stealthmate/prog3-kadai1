@@ -14,8 +14,9 @@ int min(int a, int b) {
 }
 
 void server_settings_init(server_settings* settings) {
-  settings->max_conns = 0;
-  settings->max_msg_size = 0;
+  settings->max_msg_size = 1024;
+  settings->max_name_size = 16;
+  settings->port = -1;
 
   server_callbacks cbs;
   cbs.on_server_start = NULL;
@@ -31,13 +32,9 @@ void server_settings_init(server_settings* settings) {
   cbs.on_broadcast = NULL;
 
   cbs.on_protocol_error = NULL;
+  cbs.on_internal_error = NULL;
 
   memcpy(&settings->cbs, &cbs, sizeof(server_callbacks));
-
-  settings->cbs.on_conn_overflow = NULL;
-  settings->cbs.on_client_init = NULL;
-  settings->cbs.on_client_msg = NULL;
-  settings->cbs.on_internal_error = NULL;
 }
 
 server* server_create(const server_settings* settings) {
@@ -65,11 +62,12 @@ server* server_create(const server_settings* settings) {
   return srv;
 }
 
-int server_listen(server* srv, int port) {
+int server_start(server *srv) {
+
   struct sockaddr_in srv_addr;
   memset((void *) &srv_addr, 0, sizeof(srv_addr));
   srv_addr.sin_family = PF_INET;
-  srv_addr.sin_port = htons(port);
+  srv_addr.sin_port = htons(srv->settings.port);
   srv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
   int res = bind(srv->conn_sock, (struct sockaddr *) &srv_addr, sizeof(srv_addr));
@@ -84,11 +82,7 @@ int server_listen(server* srv, int port) {
     return res;
   }
 
-  return 0;
-}
-
-int server_start(server *srv) {
-  int res = pthread_create(&srv->srv_thread, NULL, _t_server_run, (void*) srv);
+  res = pthread_create(&srv->srv_thread, NULL, _t_server_run, (void*) srv);
   if(res != 0) {
     SRV_CALLBACK(on_internal_error, "server_start(): pthread_create() failed");
     return res;
@@ -100,7 +94,7 @@ int server_start(server *srv) {
 void server_broadcast(server *srv, connection *conn, const char *msg) {
   SRV_CALLBACK(on_broadcast, conn, msg);
 
-  int bufsize = srv->settings.name_size + srv->settings.max_msg_size + 10;
+  int bufsize = srv->settings.max_name_size + srv->settings.max_msg_size + 10;
   message_content content;
   content.text.buffer = (char*) malloc(bufsize);
   int real_size = snprintf(content.text.buffer, bufsize, "[TIMESTAMP] <%d:%s>: %s", conn->sock, conn->name, msg);

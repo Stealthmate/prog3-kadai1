@@ -80,7 +80,7 @@ message *message_create(int type, message_content *content) {
   switch(msg->type) {
   case MSG_TYPE_TEXT: {
     msg->content.text.buffer = (char*) malloc(msg->content.text.len);
-    memcpy(&msg->content.text.buffer, content->text.buffer, msg->content.text.len);
+    memcpy(msg->content.text.buffer, content->text.buffer, msg->content.text.len);
   } break;
   case MSG_TYPE_HEARTBEAT:
   default: {}

@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <stdarg.h>
+#include <unistd.h>
 
 #include "../util.h"
 

@@ -68,7 +68,6 @@ int _recv_content_text(int sock, int max_size, message_content_text *text) {
   text->len = min(real_size, max_size);
 
   text->buffer = (char*) malloc(text->len);
-  pthread_cleanup_push(free, text->buffer);
 
   res = _recv_exactly(sock, text->len, text->buffer);
   if(!_recv_can_continue(res)) goto cleanup;
@@ -77,7 +76,7 @@ int _recv_content_text(int sock, int max_size, message_content_text *text) {
 
   return real_size > max_size ? MSG_RECV_TOO_LONG : MSG_RECV_OK;
  cleanup:
-  pthread_cleanup_pop(1);
+  free(text->buffer);;
   return res;
 }
 
