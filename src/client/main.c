@@ -102,7 +102,6 @@ int main() {
     buf[strlen(buf) - 1] = '\0';
     client_send(clnt, buf);
   }
-
 }
 
 /* int main() { */

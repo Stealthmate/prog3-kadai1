@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <stdio.h>
 
 #include "../protocol/protocol.h"
 #include "../collections/queue.h"
@@ -103,6 +104,8 @@ void *_t_client_send(void *arg) {
       continue;
     }
 
+    puts("SENDING");
+
     send_message(clnt->sock, msg);
     message_destroy(msg);
   }
@@ -166,23 +169,20 @@ int client_fetch(client *clnt, char **msg) {
   int res = queue_pop(clnt->q_recv, (void**) &themsg);
   if(res == COLLECTION_EMPTY) return 1;
 
+  *msg = msg_to_cstr(themsg);
+
+  message_destroy(themsg);
+
   return 0;
 }
 
 void client_send(client *clnt, const char *msg) {
-  message_content content;
-  int size = strlen(msg);
-  content.text.buffer = (char*) msg;
-  content.text.len = size;
-
-  message *themsg = message_create(MSG_TYPE_TEXT, &content);
-  queue_put(clnt->q_send, themsg);
+  queue_put(clnt->q_send, cstr_to_msg(msg));
 }
 
 void client_stop(client *clnt) {
-  /* _set_running(clnt, 0); */
+  _set_running(clnt, 0);
   close(clnt->sock);
-  puts("Closed!");
 }
 
 void client_destroy(client *clnt) {

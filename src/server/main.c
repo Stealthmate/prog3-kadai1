@@ -49,42 +49,28 @@ int my_on_before_create_conn(server *srv) {
 int my_on_after_create_conn(server *srv, connection *conn) {
   UNUSED(srv);
   my_log(2);
-  printf("Connection established on socket %d\n", connection_get_socket(conn));
+  printf("<%s::%d> has entered the chat.\n", connection_get_name(conn), connection_get_socket(conn));
   return 0;
 }
 
 int my_on_conn_disconnected(server *srv, connection *conn) {
   UNUSED(srv);
   my_log(2);
-  printf("Connection #%d disconnected\n", connection_get_socket(conn));
-  return 0;
-}
-
-int my_on_conn_recv(server *srv, connection *conn, message *msg) {
-  UNUSED(srv);
-  my_log(2);
-  printf("Connection #%d received a message.", connection_get_socket(conn));
-
-  if(message_get_type(msg) == MSG_TYPE_TEXT) {
-    char *buf = msg_to_cstr(msg);
-    printf("  %s\n", buf);
-    free(buf);
-  }
-
+  printf("<%s::%d> has left the chat.\n", connection_get_name(conn), connection_get_socket(conn));
   return 0;
 }
 
 int my_on_conn_authenticated(server *srv, connection *conn) {
   UNUSED(srv);
   my_log(2);
-  printf("%d will now be called %s\n", connection_get_socket(conn), connection_get_name(conn));
+  printf("<%s::%d> has authenticated.\n", connection_get_name(conn), connection_get_socket(conn));
   return 0;
 }
 
 int my_on_broadcast(server *srv, connection *conn, const char *msg) {
   UNUSED(srv);
   my_log(2);
-  printf("<%d:%s>: %s", connection_get_socket(conn), connection_get_name(conn), msg);
+  printf("<%d::%s>: %s\n", connection_get_socket(conn), connection_get_name(conn), msg);
   return 0;
 }
 
@@ -101,8 +87,7 @@ int main() {
   settings.cbs.on_after_create_conn = my_on_after_create_conn;
   settings.cbs.on_conn_disconnected = my_on_conn_disconnected;
   settings.cbs.on_conn_authenticated = my_on_conn_authenticated;
-
-  settings.cbs.on_conn_recv = my_on_conn_recv;
+  settings.cbs.on_broadcast = my_on_broadcast;
 
   settings.cbs.on_protocol_error = my_on_protocol_error;
 

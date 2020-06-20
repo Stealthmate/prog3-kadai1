@@ -46,7 +46,7 @@ int message_get_type(message *msg) {
 }
 
 int send_message(int sock, message* msg) {
-#define CHECKPOINT if(!_send_can_continue(res)) return res;
+#define CHECKPOINT if(res <= 0) return res;
 
   int res = MSG_SEND_OK;
 
