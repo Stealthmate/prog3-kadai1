@@ -75,8 +75,8 @@ int map_put(map *m, key k, void *v) {
   return COLLECTION_OK;
 }
 
-size_t map_size(map *m) {
-  size_t s = 0;
+int map_size(map *m) {
+  int s = 0;
   for(int i=0;i<m->size;i++) s += m->bucket_sizes[i];
   return s;
 }

@@ -1,8 +1,6 @@
 #ifndef COLLECTIONS_MAP_H
 #define COLLECTIONS_MAP_H
 
-#include "../master.h"
-
 typedef long int key;
 typedef long int (*hash_f)(void *item);
 typedef struct map map;
@@ -18,7 +16,7 @@ void map_destroy(map *m);
 int map_is_empty(map *m);
 
 int map_put(map *m, key k, void *v);
-size_t map_size(map *m);
+int map_size(map *m);
 
 map_iter map_begin(map *m);
 map_iter map_end(map *m);
