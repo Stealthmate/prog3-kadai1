@@ -1,14 +1,10 @@
 #ifndef PROTOCOL_H
 #define PROTOCOL_H
 
-#include "../master.h"
-
 #include <unistd.h>
 
 #define MSG_TYPE_HEARTBEAT 0
 #define MSG_TYPE_TEXT 1
-#define MSG_TYPE_SERVER_HANDSHAKE 2
-#define MSG_TYPE_DISCONNECT 3
 
 #define MSG_RECV_OK 0
 #define MSG_RECV_TOO_LONG 1
