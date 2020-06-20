@@ -23,11 +23,6 @@ int recv_message(int sock, int max_size, message **msg) {
   case MSG_TYPE_TEXT: {
     res = _recv_content_text(sock, max_size, &content.text);
   } break;
-  case MSG_TYPE_SERVER_HANDSHAKE: {
-    res = _recv_content_server_handshake(sock, &content.server_handshake);
-  } break;
-  case MSG_TYPE_DISCONNECT:
-    break;
   default: {
     res = MSG_RECV_ERR;
   }
@@ -51,19 +46,20 @@ int message_get_type(message *msg) {
 }
 
 int send_message(int sock, message* msg) {
+#define CHECKPOINT if(!_send_can_continue(res)) return res;
+
   int res = MSG_SEND_OK;
 
-  send(sock, &msg->type, sizeof(char), 0);
+  res = send(sock, &msg->type, sizeof(char), 0);
+  CHECKPOINT;
 
   switch(msg->type) {
   case MSG_TYPE_TEXT: {
-    send(sock, &msg->content.text.len, sizeof(int), 0);
-    send(sock, msg->content.text.buffer, msg->content.text.len, 0);
+    res = send(sock, &msg->content.text.len, sizeof(int), 0);
+    CHECKPOINT;
+    res = send(sock, msg->content.text.buffer, msg->content.text.len, 0);
+    CHECKPOINT;
   } break;
-  case MSG_TYPE_SERVER_HANDSHAKE: {
-    send(sock, &msg->content.server_handshake.max_content_size, sizeof(int), 0);
-    send(sock, &msg->content.server_handshake.max_name_size, sizeof(int), 0);
-  }
   case MSG_TYPE_HEARTBEAT:
     break;
   default: {
@@ -72,6 +68,7 @@ int send_message(int sock, message* msg) {
   }
 
   return res;
+#undef CHECKPOINT
 }
 
 message *message_create(int type, message_content *content) {
@@ -80,6 +77,14 @@ message *message_create(int type, message_content *content) {
 
   msg->type = type;
   memcpy(&msg->content, content, sizeof(message_content));
+  switch(msg->type) {
+  case MSG_TYPE_TEXT: {
+    msg->content.text.buffer = (char*) malloc(msg->content.text.len);
+    memcpy(&msg->content.text.buffer, content->text.buffer, msg->content.text.len);
+  } break;
+  case MSG_TYPE_HEARTBEAT:
+  default: {}
+  }
 
   return msg;
 }
@@ -89,24 +94,27 @@ void message_destroy(message *msg) {
   case MSG_TYPE_TEXT: {
     free(msg->content.text.buffer);
   } break;
-  case MSG_TYPE_SERVER_HANDSHAKE:
   case MSG_TYPE_HEARTBEAT:
-  case MSG_TYPE_DISCONNECT:
   default:
     break;
   }
-
   free(msg);
 }
 
-char *msg_to_cstr(message *msg, int max) {
+char *msg_to_cstr(message *msg) {
   if(msg->type != MSG_TYPE_TEXT) return NULL;
 
   int len = msg->content.text.len + 1;
-  int size = max > len ? len : max;
 
-  char *str = (char*) malloc(size);
-  memcpy(str, msg->content.text.buffer, size - 1);
-  str[size - 1] = '\0';
+  char *str = (char*) malloc(len);
+  memcpy(str, msg->content.text.buffer, len - 1);
+  str[len - 1] = '\0';
   return str;
+}
+
+message *cstr_to_msg(const char *txt) {
+  message_content content;
+  content.text.buffer = (char*) txt;
+  content.text.len = strlen(txt);
+  return message_create(MSG_TYPE_TEXT, &content);
 }

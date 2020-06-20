@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <pthread.h>
 
+#define DROP_BUF_SIZE 1024
+
 int min(int a, int b) {
   return a > b ? b : a;
 }
@@ -66,21 +68,23 @@ int _recv_content_text(int sock, int max_size, message_content_text *text) {
   text->len = min(real_size, max_size);
 
   text->buffer = (char*) malloc(text->len);
+  pthread_cleanup_push(free, text->buffer);
 
   res = _recv_exactly(sock, text->len, text->buffer);
-  if(!_recv_can_continue(res)) return res;
+  if(!_recv_can_continue(res)) goto cleanup;
   res = _drop_exactly(sock, real_size - text->len, DROP_BUF_SIZE);
-  if(!_recv_can_continue(res)) return res;
+  if(!_recv_can_continue(res)) goto cleanup;
 
   return real_size > max_size ? MSG_RECV_TOO_LONG : MSG_RECV_OK;
+ cleanup:
+  pthread_cleanup_pop(1);
+  return res;
 }
 
 int _recv_type(int sock, char *msg_type) {
   return _recv_exactly(sock, sizeof(char), msg_type);
 }
 
-int _recv_content_server_handshake(int sock, message_content_server_handshake *sh) {
-  int res = _recv_exactly(sock, sizeof(int), (char*) &sh->max_content_size);
-  if(!_recv_can_continue(res)) return res;
-  return _recv_exactly(sock, sizeof(int), (char*) &sh->max_name_size);
+int _send_can_continue(int res) {
+  return res == MSG_SEND_OK;
 }
