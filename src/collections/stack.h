@@ -1,9 +1,6 @@
 #ifndef COLLECTIONS_STACK_H
 #define COLLECTIONS_STACK_H
 
-#include "../master.h"
-#include <pthread.h>
-
 typedef struct stack stack;
 
 stack *stack_init(unsigned int maxsize);

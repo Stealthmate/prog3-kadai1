@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <pthread.h>
 
 static void _cleanup_unlock_mutex(void *arg) {
   pthread_mutex_unlock((pthread_mutex_t*) arg);
